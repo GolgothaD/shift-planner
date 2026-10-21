@@ -1,0 +1,13 @@
+const P=require('../planner.js');const set={sleepHours:8,commute:20,bufferBefore:15,bufferAfter:10,bedtime:'23:00'};
+const shifts=[{day:0,start:'09:00',end:'17:00'},{day:2,start:'22:00',end:'06:00'},{day:4,start:'14:00',end:'22:30'}];
+const tasks=[{title:'Laundry',duration:60,priority:2},{title:'Pay bill',duration:15,priority:1,deadline:2*1440},{title:'Too big',duration:5000,priority:3}];
+const r=P.plan(shifts,tasks,set,0);
+const o=P.shiftAbs(shifts[1]);console.assert(o.en-o.st===480,'overnight');
+const bad=r.blocks.filter(b=>b.type==='task').some(t=>r.blocks.some(b=>['shift','sleep','buffer'].includes(b.type)&&t.st<b.en&&t.en>b.st));
+console.assert(!bad,'task overlap');console.assert(r.unsched.length===1&&r.unsched[0].title==='Too big','unsched');
+console.assert(r.sched[0].task.title==='Pay bill','priority');
+const sleepOverShift=r.blocks.filter(b=>b.type==='sleep').some(s=>r.blocks.some(b=>b.type==='shift'&&s.st<b.en&&s.en>b.st));
+console.assert(!sleepOverShift,'sleep overlap');
+console.assert(P.ics(shifts,new Date(2026,9,19)).includes('DTSTART:20261021T220000'),'ics');
+r.blocks.filter(b=>b.type!=='free').forEach(b=>console.log(b.type,Math.floor(b.st/1440),P.fmt(b.st),'-',P.fmt(b.en),b.label));
+console.log('tests done');

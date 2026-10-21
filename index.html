@@ -94,10 +94,12 @@ body{background:radial-gradient(1px 1px at 20% 30%,#fff,#0000),radial-gradient(1
 header.win{padding-bottom:22px}input,select{color-scheme:dark}
 </style></head><body><header class="win"><div class="tb"><h1><span class="ico">🂡</span> Shift Planner</h1><button id="themeBtn" class="btn" onclick="themeMenu.classList.toggle('open')">🎨 Themes</button><div class="ctl"><i>_</i><i>□</i><i>✕</i></div></div><div class="wb muted" style="color:#000">Plan life around a schedule that keeps changing ♠♥♦♣</div><div id="themeMenu" class="win"></div></header>
 <nav id="nav"></nav><main id="app"></main><canvas id="fx"></canvas><div id="bar"><button id="start" onclick="tab='today';r()">🪟 Start</button><span id="clock"></span></div>
-<script src="planner.js"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script><script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script><script src="planner.js"></script><script>
 const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const S=JSON.parse(localStorage.getItem('sp')||'null')||{weeks:{},tasks:[],set:{sleepHours:8,commute:20,bufferBefore:15,bufferAfter:10,bedtime:'23:00'}};
-const save=()=>localStorage.setItem('sp',JSON.stringify(S));
+// Sync config: paste a Google OAuth Web client ID here to enable Drive auto-sync (no secrets needed)
+const GOOGLE_CLIENT_ID='';
+function save(fromSync){localStorage.setItem('sp',JSON.stringify(S));if(!fromSync){localStorage.setItem('spUpdated',Date.now());drivePushSoon();}}
 function monday(d){d=new Date(d);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;}
 let wk=monday(new Date()),tab='today';const key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const shifts=()=>S.weeks[key(wk)]||(S.weeks[key(wk)]=[]);
@@ -128,6 +130,17 @@ tasks(){const p=getPlan(),when={};p.sched.forEach(s=>when[s.task.id]=s.st);
  <div class="row"><div><label>Minutes</label><input id="tm" type="number" value="30" min="5"></div><div><label>Priority</label><select id="tp"><option value=1>High</option><option value=2 selected>Medium</option><option value=3>Low</option></select></div></div>
  <div class="row"><div><label>Type</label><select id="ty">${['errand','chore','goal','workout','personal'].map(x=>`<option>${x}</option>`).join('')}</select></div><div><label>Deadline (optional)</label><input id="td" type="date"></div></div>
  <button class="btn" onclick="addTask()">Add task</button></div><div class="card"><h3>Tasks</h3>${S.tasks.map((t,i)=>`<div class="b ${t.done?'':'task'}" style="${t.done?'text-decoration:line-through;background:#eee':''}"><span><input type="checkbox" style="width:auto" ${t.done?'checked':''} onchange="tog(${i})"> ${h(t.title)} <span class="muted">${t.type} · ${t.duration}m · ${['','High','Med','Low'][t.priority]}${t.deadlineDate?' · due '+t.deadlineDate:''}<br>${t.done?'Done':when[t.id]!=null?'📅 '+DAYS[Math.floor(when[t.id]/1440)]+' '+fmt(when[t.id]):'⚠️ no slot this week'}</span></span><button class="x" onclick="delTask(${i})">✕</button></div>`).join('')||'<p class="muted">No tasks yet.</p>'}</div>`;},
+sync(){const link=syncLink(),code=link.split('#sync=')[1];let qr='';
+ try{const q=qrcode(0,'L');q.addData(link);q.make();qr=q.createSvgTag({cellSize:3,margin:2,scalable:true});}catch(e){qr='<p class="muted">Too much data for a QR code. Use the link or a backup file instead.</p>';}
+ return `<div class="card"><h3>Sync devices</h3><p class="muted">Scan this on your other device (phone camera), or copy the link and open it there. You'll be asked to merge or replace.</p>
+ <div id="sy-qr" style="position:relative;z-index:51;background:#fff;padding:6px;max-width:260px;margin:8px auto">${qr}</div>
+ <label>Sync link</label><input id="sy-link" readonly value="${h(link)}" onclick="this.select()"><button class="btn" onclick="copyTxt(syLinkVal())">Copy link</button>
+ <label>Paste a sync link or code from another device</label><input id="sy-in" placeholder="Paste here"><button class="btn g" onclick="importCode(document.getElementById('sy-in').value)">Import</button>
+ <p class="muted">Code is ${code.length} characters.</p></div>
+ <div class="card"><h3>Import shifts</h3><p class="muted">Add shifts from a calendar file (.ics). Duplicates are skipped.</p><label class="btn g" style="display:inline-block;color:inherit">Import .ics<input type="file" accept=".ics,text/calendar" style="display:none" onchange="importIcsFile(this)"></label></div>
+ <div class="card"><h3>Backup file</h3><button class="btn" onclick="exportBackup()">Download backup</button> <label class="btn g" style="display:inline-block;color:inherit">Import backup<input type="file" accept=".json,application/json" style="display:none" onchange="importFile(this)"></label></div>
+ ${GOOGLE_CLIENT_ID?`<div class="card"><h3>Google Drive auto-sync</h3><p class="muted">${localStorage.getItem('spDrive')?'On. Syncs when the app opens and after changes. Last sync: '+(localStorage.getItem('spDriveAt')?new Date(+localStorage.getItem('spDriveAt')).toLocaleString():'never'):'Keep this device in sync automatically through a private app folder in your Google Drive.'}</p>
+ ${localStorage.getItem('spDrive')?'<button class="btn" onclick="driveSync(true)">Sync now</button> <button class="btn g" onclick="driveOff()">Turn off</button>':'<button class="btn" onclick="driveOn()">Sign in with Google</button>'}<p class="muted" id="sy-ds"></p></div>`:''}`;},
 settings(){const s=S.set,f=(k,l,t='number')=>`<label>${l}</label><input type="${t}" value="${s[k]}" onchange="S.set['${k}']=this.type=='number'?+this.value:this.value;save()">`;
  return `<div class="card"><h3>Settings</h3>${f('sleepHours','Sleep needed (hours)')}${f('bedtime','Usual bedtime (non-shift nights)','time')}${f('commute','Commute (minutes each way)')}${f('bufferBefore','Buffer before shift (min)')}${f('bufferAfter','Buffer after shift (min)')}
  <p class="muted">After a late or overnight shift, sleep is protected right after you get home.</p><p class="muted">Everything is saved only on this device.</p></div>`;}};
@@ -160,5 +173,64 @@ function card(cx,cy,s){x.fillStyle='#fff';x.strokeStyle='#000';x.fillRect(cx,cy,
 (function step(){if(f%12==0&&n<16)cards.push({x:c.width-50-(n%4)*10,y:20,vx:-(2+Math.random()*4),vy:0,s:n++%4});
 cards.forEach(k=>{k.vy+=.5;k.x+=k.vx;k.y+=k.vy;if(k.y>c.height-56){k.y=c.height-56;k.vy*=-.8;}card(k.x,k.y,k.s);});
 if(++f<420)requestAnimationFrame(step);else x.clearRect(0,0,c.width,c.height);})();}
+
+// ---- device sync ----
+function syncPayload(){return JSON.stringify({v:1,sp:S,theme,t:+(localStorage.getItem('spUpdated')||Date.now())});}
+function syncLink(){return location.origin+location.pathname+'#sync='+LZString.compressToEncodedURIComponent(syncPayload());}
+function syLinkVal(){return document.getElementById('sy-link').value;}
+function copyTxt(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>alert('Copied!'),()=>{const e=document.getElementById('sy-link');e.select();document.execCommand('copy');alert('Copied!');});}
+function decodeCode(c){c=(c||'').trim();if(c.includes('#sync='))c=c.split('#sync=')[1];const j=LZString.decompressFromEncodedURIComponent(c);if(!j)throw 0;return JSON.parse(j);}
+function importCode(c){let d;try{d=decodeCode(c);}catch(e){return alert("That sync code didn't work. Copy the whole link and try again.");}askImport(d);}
+function validData(x){return x&&typeof x=='object'&&x.weeks&&typeof x.weeks=='object'&&Array.isArray(x.tasks);}
+function mergeData(a,b){const w={...a.weeks};for(const k in b.weeks){const seen=new Set((w[k]||[]).map(s=>s.day+s.start+s.end));w[k]=[...(w[k]||[]),...b.weeks[k].filter(s=>!seen.has(s.day+s.start+s.end))].sort((x,y)=>x.day-y.day||x.start.localeCompare(y.start));}
+ const t=new Map(a.tasks.map(x=>[x.id,x]));b.tasks.forEach(x=>{const o=t.get(x.id);t.set(x.id,o?{...o,...x,done:o.done||x.done}:x);});return{weeks:w,tasks:[...t.values()],set:{...b.set,...a.set}};}
+function applyData(n,th){for(const k of Object.keys(S))delete S[k];Object.assign(S,n);if(!S.set)S.set={sleepHours:8,commute:20,bufferBefore:15,bufferAfter:10,bedtime:'23:00'};save();if(th&&THEMES[th])setTheme(th);r();}
+function askImport(d){const x=d&&d.sp;if(!validData(x))return alert("That doesn't look like Shift Planner data.");
+ const m=document.createElement('div');m.id='sy-modal';m.style.cssText='position:fixed;inset:0;background:#0008;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px';
+ m.innerHTML=`<div class="card" style="max-width:360px;width:100%"><h3>Import synced data?</h3><p>Incoming: ${Object.values(x.weeks).reduce((n,a)=>n+a.length,0)} shifts, ${x.tasks.length} tasks${d.t?' (saved '+new Date(d.t).toLocaleString()+')':''}.</p><p class="muted">Merge keeps everything on this device and adds the new items. Replace overwrites this device.</p>
+ <button class="btn" id="sy-merge">Merge</button> <button class="btn g" id="sy-replace">Replace</button> <button class="btn g" id="sy-cancel">Cancel</button></div>`;
+ document.body.appendChild(m);const done=()=>{m.remove();if(location.hash.startsWith('#sync='))history.replaceState(null,'',location.pathname);};
+ m.querySelector('#sy-merge').onclick=()=>{applyData(mergeData(S,x));done();};
+ m.querySelector('#sy-replace').onclick=()=>{applyData(JSON.parse(JSON.stringify(x)),d.theme);done();};
+ m.querySelector('#sy-cancel').onclick=done;}
+function exportBackup(){const b=new Blob([syncPayload()],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='shift-planner-backup-'+key(new Date())+'.json';a.click();}
+function importFile(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{let d;try{d=JSON.parse(t);}catch(e){return alert('Not a valid backup file.');}if(!d.sp&&validData(d))d={sp:d};askImport(d);});inp.value='';}
+// ---- Google Drive appDataFolder auto-sync (enabled only when GOOGLE_CLIENT_ID is set) ----
+let gTok=null,gClient=null,pushT=null;const DF='shift-planner.json';
+function gis(){return new Promise((ok,no)=>{if(window.google&&google.accounts)return ok();const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.onload=ok;sc.onerror=no;document.head.appendChild(sc);});}
+function token(interactive){return gis().then(()=>new Promise((ok,no)=>{gClient=gClient||google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:'https://www.googleapis.com/auth/drive.appdata',callback:()=>{}});
+ gClient.callback=t=>t.error?no(t):(gTok=t.access_token,setTimeout(()=>gTok=null,(t.expires_in-60)*1000),ok(gTok));gClient.error_callback=no;gClient.requestAccessToken({prompt:interactive?'consent':''});}));}
+async function gf(u,o={}){if(!gTok)await token(false);const r=await fetch(u,{...o,headers:{...(o.headers||{}),Authorization:'Bearer '+gTok}});if(!r.ok)throw new Error('Drive '+r.status);return r;}
+async function driveFile(){const r=await(await gf("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id)&q="+encodeURIComponent("name='"+DF+"'"))).json();return r.files[0]&&r.files[0].id;}
+function dsMsg(t){const e=document.getElementById('sy-ds');if(e)e.textContent=t;}
+async function driveSync(){if(!GOOGLE_CLIENT_ID||!localStorage.getItem('spDrive'))return;try{dsMsg('Syncing…');const id=await driveFile();let remote=null;
+ if(id)remote=await(await gf('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media')).json();const lt=+(localStorage.getItem('spUpdated')||0);
+ if(remote&&validData(remote.sp)&&remote.t>lt){applyDataSync(remote);}else{await drivePut(id);}localStorage.setItem('spDriveAt',Date.now());dsMsg('Synced.');if(tab=='sync')r();}catch(e){dsMsg('Sync failed: '+(e.message||e.error||e));}}
+function applyDataSync(d){for(const k of Object.keys(S))delete S[k];Object.assign(S,d.sp);save(true);localStorage.setItem('spUpdated',d.t);r();}
+async function drivePut(id){const meta={name:DF,...(id?{}:{parents:['appDataFolder']})},fd=new FormData();fd.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));fd.append('file',new Blob([syncPayload()],{type:'application/json'}));
+ await gf('https://www.googleapis.com/upload/drive/v3/files'+(id?'/'+id:'')+'?uploadType=multipart',{method:id?'PATCH':'POST',body:fd});}
+function drivePushSoon(){if(!GOOGLE_CLIENT_ID||!localStorage.getItem('spDrive'))return;clearTimeout(pushT);pushT=setTimeout(driveSync,3000);}
+function driveOn(){token(true).then(()=>{localStorage.setItem('spDrive','1');driveSync();},e=>alert('Google sign-in was cancelled or failed.'));}
+function driveOff(){localStorage.removeItem('spDrive');if(gTok&&window.google)google.accounts.oauth2.revoke(gTok);gTok=null;r();}
+if(location.hash.startsWith('#sync='))setTimeout(()=>importCode(location.hash),0);
+window.addEventListener('hashchange',()=>location.hash.startsWith('#sync=')&&importCode(location.hash));
+if(GOOGLE_CLIENT_ID&&localStorage.getItem('spDrive'))setTimeout(driveSync,500);
+
+// ---- shift import (#import=<base64url JSON> and .ics) ----
+function addShiftList(list){let added=0,skip=0;list.forEach(x=>{const d=new Date(x.date+'T00:00'),k=key(monday(d)),day=(d.getDay()+6)%7;const a=S.weeks[k]||(S.weeks[k]=[]);
+ if(a.some(s=>s.day==day&&s.start==x.start&&s.end==x.end))skip++;else{a.push({day,start:x.start,end:x.end});added++;}a.sort((p,q)=>p.day-q.day||p.start.localeCompare(q.start));});save();return{added,skip};}
+const okShift=x=>x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&/^\d{2}:\d{2}$/.test(x.start)&&/^\d{2}:\d{2}$/.test(x.end)&&!isNaN(new Date(x.date+'T00:00'));
+function askShifts(list,src){list=list.filter(okShift);if(!list.length){alert('No valid shifts found'+(src?' in '+src:'')+'.');return clearImp();}
+ const lines=list.map(x=>`${new Date(x.date+'T00:00').toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})}  ${fmt(toMin(x.start))}–${fmt(toMin(x.end))}${toMin(x.end)<=toMin(x.start)?' (overnight)':''}`).join('\n');
+ if(confirm(`Add these ${list.length} shift(s)?\n\n${lines}\n\nDuplicates will be skipped.`)){const r2=addShiftList(list);const d0=new Date(list.map(x=>x.date).sort()[0]+'T00:00');wk=monday(d0);tab='shifts';r();alert(`Added ${r2.added} shift(s)`+(r2.skip?`, skipped ${r2.skip} duplicate(s)`:'')+'.');}clearImp();}
+function clearImp(){if(location.hash.startsWith('#import='))history.replaceState(null,'',location.pathname+location.search);}
+function importHash(){try{let b=location.hash.slice(8).replace(/-/g,'+').replace(/_/g,'/');b+='='.repeat((4-b.length%4)%4);const j=JSON.parse(decodeURIComponent(escape(atob(b))));askShifts(j.shifts||[],'the link');}catch(e){alert("That import link didn't work.");clearImp();}}
+function parseIcs(t){t=t.replace(/\r?\n[ \t]/g,'');const out=[],p=n=>String(n).padStart(2,'0');
+ const dt=v=>{const m=v.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z?)/);if(!m)return null;const d=m[7]?new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5])):new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5]);return d;};
+ for(const ev of t.split('BEGIN:VEVENT').slice(1)){const g=k=>{const m=ev.match(new RegExp('^'+k+'[^:\\r\\n]*:(.*)$','m'));return m&&m[1].trim();};const a=dt(g('DTSTART')||''),b=dt(g('DTEND')||'');if(!a||!b)continue;
+  out.push({date:a.getFullYear()+'-'+p(a.getMonth()+1)+'-'+p(a.getDate()),start:p(a.getHours())+':'+p(a.getMinutes()),end:p(b.getHours())+':'+p(b.getMinutes())});}return out;}
+function importIcsFile(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>askShifts(parseIcs(t),'that file'));inp.value='';}
+if(location.hash.startsWith('#import='))setTimeout(importHash,0);
+window.addEventListener('hashchange',()=>location.hash.startsWith('#import=')&&importHash());
 r();setInterval(()=>tab=='today'&&r(),60000);
 </script></body></html>
