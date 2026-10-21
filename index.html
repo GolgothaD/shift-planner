@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shift Planner</title><style>
+:root{--bg:#f6f7fb;--c:#fff;--p:#4f46e5;--t:#1f2937;--m:#6b7280}*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--t)}
+header{background:var(--p);color:#fff;padding:14px 16px}h1{margin:0;font-size:20px}nav{display:flex;gap:4px;padding:8px;position:sticky;top:0;background:var(--bg);z-index:2;overflow-x:auto}
+nav button{flex:1;border:0;padding:10px;border-radius:10px;background:#e5e7eb;font-weight:600}nav button.on{background:var(--p);color:#fff}
+main{padding:8px 12px 40px;max-width:720px;margin:auto}.card{background:var(--c);border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0001}
+label{display:block;font-size:13px;color:var(--m);margin-top:8px}input,select{width:100%;padding:9px;border:1px solid #d1d5db;border-radius:8px;font-size:15px}
+.row{display:flex;gap:8px}.row>*{flex:1}.btn{background:var(--p);color:#fff;border:0;padding:10px 14px;border-radius:10px;font-weight:600;margin-top:10px}.btn.g{background:#e5e7eb;color:var(--t)}
+.b{padding:6px 10px;border-radius:8px;margin:4px 0;font-size:14px;display:flex;justify-content:space-between;gap:8px}.shift{background:#fde68a}.sleep{background:#c7d2fe}.buffer{background:#fed7aa}.free{background:#dcfce7}.task{background:#a7f3d0;font-weight:600}
+.day h3{margin:4px 0}.x{border:0;background:none;color:#dc2626;font-size:16px}.muted{color:var(--m);font-size:13px}.big{font-size:22px;font-weight:700}
+</style></head><body><header><h1>🗓️ Shift Planner</h1><div class="muted" style="color:#e0e7ff">Plan life around a schedule that keeps changing</div></header>
+<nav id="nav"></nav><main id="app"></main>
+<script src="planner.js"></script><script>
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const S=JSON.parse(localStorage.getItem('sp')||'null')||{weeks:{},tasks:[],set:{sleepHours:8,commute:20,bufferBefore:15,bufferAfter:10,bedtime:'23:00'}};
+const save=()=>localStorage.setItem('sp',JSON.stringify(S));
+function monday(d){d=new Date(d);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;}
+let wk=monday(new Date()),tab='today';const key=d=>d.toISOString().slice(0,10);
+const shifts=()=>S.weeks[key(wk)]||(S.weeks[key(wk)]=[]);
+const nowAbs=()=>{const n=Date.now()-wk.getTime();return n/60000|0;};
+function dateOf(m){return new Date(wk.getTime()+m*60000);}
+function dl(t){if(!t.deadlineDate)return null;return Math.floor((new Date(t.deadlineDate+'T23:59')-wk)/60000);}
+function getPlan(){const ts=S.tasks.map(t=>({...t,deadline:dl(t)}));return plan(shifts(),ts,S.set,Math.max(0,nowAbs()));}
+const h=(s)=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function blk(b){const d=dateOf(b.st);return `<div class="b ${b.type}"><span>${h(b.label)}${b.task?' · '+b.task.type:''}</span><span>${fmt(b.st)}–${fmt(b.en)}</span></div>`;}
+const views={
+today(){const p=getPlan(),n=nowAbs(),dayEnd=(Math.floor(n/1440)+1)*1440;
+ const cur=p.blocks.find(b=>b.type!=='free'&&b.st<=n&&b.en>n),up=p.blocks.filter(b=>b.st>n&&b.st<dayEnd+360&&b.type!=='free');
+ const nx=up[0];return `<div class="card"><div class="muted">Right now</div><div class="big">${cur?h(cur.label):'Free time'}</div>
+ ${nx?`<div class="muted" style="margin-top:8px">Up next</div><div>${blk(nx)}</div>`:''}</div>
+ <div class="card"><h3>Rest of today</h3>${up.map(blk).join('')||'<p class="muted">Nothing planned. Enjoy!</p>'}</div>
+ ${p.unsched.length?`<div class="card"><h3>⚠️ Didn't fit this week</h3>${p.unsched.map(t=>`<div class="b">${h(t.title)}<span>${t.duration} min</span></div>`).join('')}</div>`:''}`;},
+week(){const p=getPlan();let o=`<div class="card row"><button class="btn g" onclick="mv(-7)">◀</button><div style="text-align:center;padding-top:14px">Week of ${wk.toLocaleDateString()}</div><button class="btn g" onclick="mv(7)">▶</button></div>`;
+ for(let d=0;d<7;d++){const bs=p.blocks.filter(b=>b.st>=d*1440&&b.st<(d+1)*1440&&(b.type!=='free'||b.en-b.st>=30));
+ o+=`<div class="card day"><h3>${DAYS[d]} ${dateOf(d*1440).getDate()}</h3>${bs.map(blk).join('')}</div>`;}return o;},
+shifts(){const sh=shifts();return `<div class="card row"><button class="btn g" onclick="mv(-7)">◀</button><div style="text-align:center;padding-top:14px">Week of ${wk.toLocaleDateString()}</div><button class="btn g" onclick="mv(7)">▶</button></div>
+ <div class="card"><h3>Add shift</h3><div class="row"><div><label>Day</label><select id="sd">${DAYS.map((d,i)=>`<option value=${i}>${d}</option>`).join('')}</select></div>
+ <div><label>Start</label><input id="ss" type="time" value="09:00"></div><div><label>End</label><input id="se" type="time" value="17:00"></div></div>
+ <div class="muted">End earlier than start = overnight shift</div><button class="btn" onclick="addShift()">Add shift</button>
+ <button class="btn g" onclick="copyLast()">Copy last week</button> <button class="btn g" onclick="exportIcs()">Export .ics</button></div>
+ <div class="card"><h3>This week's shifts</h3>${sh.map((s,i)=>`<div class="b shift"><span>${DAYS[s.day]} ${fmt(toMin(s.start))}–${fmt(toMin(s.end))}${toMin(s.end)<=toMin(s.start)?' 🌙':''}</span><button class="x" onclick="delShift(${i})">✕</button></div>`).join('')||'<p class="muted">No shifts yet.</p>'}</div>`;},
+tasks(){const p=getPlan(),when={};p.sched.forEach(s=>when[s.task.id]=s.st);
+ return `<div class="card"><h3>Add task</h3><label>What</label><input id="tt" placeholder="e.g. Grocery run">
+ <div class="row"><div><label>Minutes</label><input id="tm" type="number" value="30" min="5"></div><div><label>Priority</label><select id="tp"><option value=1>High</option><option value=2 selected>Medium</option><option value=3>Low</option></select></div></div>
+ <div class="row"><div><label>Type</label><select id="ty">${['errand','chore','goal','workout','personal'].map(x=>`<option>${x}</option>`).join('')}</select></div><div><label>Deadline (optional)</label><input id="td" type="date"></div></div>
+ <button class="btn" onclick="addTask()">Add task</button></div><div class="card"><h3>Tasks</h3>${S.tasks.map((t,i)=>`<div class="b ${t.done?'':'task'}" style="${t.done?'text-decoration:line-through;background:#eee':''}"><span><input type="checkbox" style="width:auto" ${t.done?'checked':''} onchange="tog(${i})"> ${h(t.title)} <span class="muted">${t.type} · ${t.duration}m · ${['','High','Med','Low'][t.priority]}${t.deadlineDate?' · due '+t.deadlineDate:''}<br>${t.done?'Done':when[t.id]!=null?'📅 '+DAYS[Math.floor(when[t.id]/1440)]+' '+fmt(when[t.id]):'⚠️ no slot this week'}</span></span><button class="x" onclick="delTask(${i})">✕</button></div>`).join('')||'<p class="muted">No tasks yet.</p>'}</div>`;},
+settings(){const s=S.set,f=(k,l,t='number')=>`<label>${l}</label><input type="${t}" value="${s[k]}" onchange="S.set['${k}']=this.type=='number'?+this.value:this.value;save()">`;
+ return `<div class="card"><h3>Settings</h3>${f('sleepHours','Sleep needed (hours)')}${f('bedtime','Usual bedtime (non-shift nights)','time')}${f('commute','Commute (minutes each way)')}${f('bufferBefore','Buffer before shift (min)')}${f('bufferAfter','Buffer after shift (min)')}
+ <p class="muted">After a late or overnight shift, sleep is protected right after you get home.</p><p class="muted">Everything is saved only on this device.</p></div>`;}};
+function r(){document.getElementById('nav').innerHTML=Object.keys(views).map(k=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${k[0].toUpperCase()+k.slice(1)}</button>`).join('');document.getElementById('app').innerHTML=views[tab]();}
+function mv(d){wk=new Date(wk.getTime());wk.setDate(wk.getDate()+d);r();}
+function addShift(){shifts().push({day:+sd.value,start:ss.value,end:se.value});shifts().sort((a,b)=>a.day-b.day||a.start.localeCompare(b.start));save();r();}
+function delShift(i){shifts().splice(i,1);save();r();}
+function copyLast(){const l=new Date(wk);l.setDate(l.getDate()-7);const p=S.weeks[key(l)];if(!p||!p.length)return alert('No shifts saved for last week.');S.weeks[key(wk)]=p.map(s=>({...s}));save();r();}
+function addTask(){if(!tt.value.trim())return;S.tasks.push({id:Date.now(),title:tt.value.trim(),duration:Math.max(5,+tm.value||30),priority:+tp.value,type:ty.value,deadlineDate:td.value||null,done:false});save();r();}
+function tog(i){S.tasks[i].done=!S.tasks[i].done;save();r();}function delTask(i){S.tasks.splice(i,1);save();r();}
+function exportIcs(){const b=new Blob([ics(shifts(),wk)],{type:'text/calendar'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='shifts-'+key(wk)+'.ics';a.click();}
+r();setInterval(()=>tab=='today'&&r(),60000);
+</script></body></html>
