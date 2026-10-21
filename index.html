@@ -1,15 +1,44 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shift Planner</title><style>
-:root{--bg:#f6f7fb;--c:#fff;--p:#4f46e5;--t:#1f2937;--m:#6b7280}*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--t)}
-header{background:var(--p);color:#fff;padding:14px 16px}h1{margin:0;font-size:20px}nav{display:flex;gap:4px;padding:8px;position:sticky;top:0;background:var(--bg);z-index:2;overflow-x:auto}
-nav button{flex:1;border:0;padding:10px;border-radius:10px;background:#e5e7eb;font-weight:600}nav button.on{background:var(--p);color:#fff}
-main{padding:8px 12px 40px;max-width:720px;margin:auto}.card{background:var(--c);border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0001}
-label{display:block;font-size:13px;color:var(--m);margin-top:8px}input,select{width:100%;padding:9px;border:1px solid #d1d5db;border-radius:8px;font-size:15px}
-.row{display:flex;gap:8px}.row>*{flex:1}.btn{background:var(--p);color:#fff;border:0;padding:10px 14px;border-radius:10px;font-weight:600;margin-top:10px}.btn.g{background:#e5e7eb;color:var(--t)}
-.b{padding:6px 10px;border-radius:8px;margin:4px 0;font-size:14px;display:flex;justify-content:space-between;gap:8px}.shift{background:#fde68a}.sleep{background:#c7d2fe}.buffer{background:#fed7aa}.free{background:#dcfce7}.task{background:#a7f3d0;font-weight:600}
-.day h3{margin:4px 0}.x{border:0;background:none;color:#dc2626;font-size:16px}.muted{color:var(--m);font-size:13px}.big{font-size:22px;font-weight:700}
-</style></head><body><header><h1>🗓️ Shift Planner</h1><div class="muted" style="color:#e0e7ff">Plan life around a schedule that keeps changing</div></header>
-<nav id="nav"></nav><main id="app"></main>
+@font-face{font-family:'W95FA';src:url('https://cdn.jsdelivr.net/gh/hydrogenhammer/w95fa@main/w95fa.woff2') format('woff2'),url('https://unpkg.com/98.css@0.1.20/dist/ms_sans_serif.woff2') format('woff2')}
+@font-face{font-family:'MSS';src:url('https://unpkg.com/98.css@0.1.20/dist/ms_sans_serif.woff2') format('woff2');font-weight:400}
+@font-face{font-family:'MSS';src:url('https://unpkg.com/98.css@0.1.20/dist/ms_sans_serif_bold.woff2') format('woff2');font-weight:700}
+:root{--g:#c0c0c0;--t:#000;--m:#404040;--out:inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px #808080,inset 2px 2px #dfdfdf;--in:inset -1px -1px #fff,inset 1px 1px #808080,inset -2px -2px #dfdfdf,inset 2px 2px #0a0a0a}
+*{box-sizing:border-box}
+body{margin:0;font-family:'MSS','W95FA','Pixelated MS Sans Serif','MS Sans Serif',Tahoma,Verdana,sans-serif;font-size:14px;color:var(--t);background:#008000;background-image:radial-gradient(#0a8a0a 1px,transparent 1px);background-size:4px 4px;min-height:100vh;padding-bottom:46px}
+.win{background:var(--g);box-shadow:var(--out);padding:3px;margin:10px 0}
+.tb{background:linear-gradient(90deg,#000080,#1084d0);color:#fff;font-weight:700;padding:3px 3px 3px 5px;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:13px}
+.tb .ctl{display:flex;gap:2px}.tb .ctl i{width:16px;height:14px;background:var(--g);box-shadow:var(--out);color:#000;font:700 10px/14px monospace;text-align:center;font-style:normal}
+.wb{padding:8px}
+header.win{margin:8px 8px 0}h1{margin:0;font-size:14px}
+nav{display:flex;gap:0;padding:6px 8px 0;position:sticky;top:0;z-index:2;overflow-x:auto;background:#008000}
+nav button{font:inherit;border:0;padding:6px 10px;background:var(--g);box-shadow:inset 1px 1px #fff,inset -1px 0 #0a0a0a,inset -2px 0 #808080;border-radius:3px 3px 0 0;margin-top:3px;color:#000;flex:1}
+nav button.on{margin-top:0;padding-bottom:9px;font-weight:700;position:relative;top:1px}
+main{padding:0 8px 20px;max-width:720px;margin:auto}
+.card{background:var(--g);box-shadow:var(--out);padding:10px;margin:10px 0;position:relative}
+.card h3{margin:-10px -10px 8px;padding:3px 6px;background:linear-gradient(90deg,#000080,#1084d0);color:#fff;font-size:13px;display:flex;justify-content:space-between}
+.card h3::after{content:'_ □ ✕';font:700 10px monospace;letter-spacing:3px;opacity:.9}
+label{display:block;font-size:13px;color:#000;margin-top:8px}
+input,select{width:100%;padding:5px 4px;border:0;border-radius:0;background:#fff;box-shadow:var(--in);font:inherit;font-size:15px}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:0}
+.btn,.x{font:inherit;background:var(--g);color:#000;border:0;border-radius:0;box-shadow:var(--out);padding:7px 14px;margin-top:10px;min-width:75px;cursor:pointer}
+.btn:active,.x:active,nav button:active,#start:active{box-shadow:var(--in);padding:8px 13px 6px 15px}
+.btn:focus{outline:1px dotted #000;outline-offset:-5px}
+.x{min-width:0;padding:2px 7px;margin:0;color:#a00;font-weight:700}
+.b{padding:6px 8px 6px 26px;margin:6px 0;font-size:14px;display:flex;justify-content:space-between;gap:8px;background:#fff;border:1px solid #000;border-radius:5px;box-shadow:2px 2px 0 #0004;position:relative;align-items:center}
+.b::before{content:'♠';position:absolute;left:7px;top:4px;font-size:15px}
+.shift{border-left:10px solid #000080;background:#fff}.shift::before{content:'♦';color:#c00;left:12px}
+.sleep{background:repeating-linear-gradient(45deg,#000080 0 3px,#1c3fb8 3px 6px);color:#fff;border:2px solid #fff;outline:1px solid #000}.sleep::before{content:'☾'}
+.buffer{background:#fffbe0}.buffer::before{content:'♣'}
+.free{background:#e8ffe8}.free::before{content:'♣';color:#060}
+.task{font-weight:700}.task::before{content:'♥';color:#c00}
+.day h3{margin:-10px -10px 8px}.muted{color:var(--m);font-size:13px}.sleep .muted{color:#ddd}.big{font-size:22px;font-weight:700}
+#bar{position:fixed;left:0;right:0;bottom:0;height:38px;background:var(--g);box-shadow:inset 0 1px #dfdfdf,inset 0 2px #fff;display:flex;align-items:center;justify-content:space-between;padding:3px;z-index:9}
+#start{font:inherit;font-weight:700;background:var(--g);border:0;box-shadow:var(--out);padding:4px 8px;height:30px}
+#clock{box-shadow:var(--in);padding:6px 10px;font-size:13px}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:20}
+</style></head><body><header class="win"><div class="tb"><h1>🂡 Shift Planner</h1><div class="ctl"><i>_</i><i>□</i><i>✕</i></div></div><div class="wb muted" style="color:#000">Plan life around a schedule that keeps changing ♠♥♦♣</div></header>
+<nav id="nav"></nav><main id="app"></main><canvas id="fx"></canvas><div id="bar"><button id="start" onclick="tab='today';r()">🪟 Start</button><span id="clock"></span></div>
 <script src="planner.js"></script><script>
 const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const S=JSON.parse(localStorage.getItem('sp')||'null')||{weeks:{},tasks:[],set:{sleepHours:8,commute:20,bufferBefore:15,bufferAfter:10,bedtime:'23:00'}};
@@ -53,7 +82,13 @@ function addShift(){shifts().push({day:+sd.value,start:ss.value,end:se.value});s
 function delShift(i){shifts().splice(i,1);save();r();}
 function copyLast(){const l=new Date(wk);l.setDate(l.getDate()-7);const p=S.weeks[key(l)];if(!p||!p.length)return alert('No shifts saved for last week.');S.weeks[key(wk)]=p.map(s=>({...s}));save();r();}
 function addTask(){if(!tt.value.trim())return;S.tasks.push({id:Date.now(),title:tt.value.trim(),duration:Math.max(5,+tm.value||30),priority:+tp.value,type:ty.value,deadlineDate:td.value||null,done:false});save();r();}
-function tog(i){S.tasks[i].done=!S.tasks[i].done;save();r();}function delTask(i){S.tasks.splice(i,1);save();r();}
+function tog(i){S.tasks[i].done=!S.tasks[i].done;save();r();if(S.tasks[i].done&&S.tasks.every(t=>t.done))win();}function delTask(i){S.tasks.splice(i,1);save();r();}
 function exportIcs(){const b=new Blob([ics(shifts(),wk)],{type:'text/calendar'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='shifts-'+key(wk)+'.ics';a.click();}
+function tick(){clock.textContent=new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});}tick();setInterval(tick,10000);
+function win(){const c=fx,x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;const su='♠♥♦♣';let n=0,cards=[],f=0;
+function card(cx,cy,s){x.fillStyle='#fff';x.strokeStyle='#000';x.fillRect(cx,cy,40,56);x.strokeRect(cx,cy,40,56);x.fillStyle=s%2?'#c00':'#000';x.font='bold 22px serif';x.fillText(su[s],cx+11,cy+36);}
+(function step(){if(f%12==0&&n<16)cards.push({x:c.width-50-(n%4)*10,y:20,vx:-(2+Math.random()*4),vy:0,s:n++%4});
+cards.forEach(k=>{k.vy+=.5;k.x+=k.vx;k.y+=k.vy;if(k.y>c.height-56){k.y=c.height-56;k.vy*=-.8;}card(k.x,k.y,k.s);});
+if(++f<420)requestAnimationFrame(step);else x.clearRect(0,0,c.width,c.height);})();}
 r();setInterval(()=>tab=='today'&&r(),60000);
 </script></body></html>
