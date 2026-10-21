@@ -1,6 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Shift Planner</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Share+Tech+Mono&family=Orbitron:wght@600;800&family=Caveat:wght@600;700&family=Nunito:wght@400;700&family=Exo+2:wght@400;700&display=swap"><style id="th-win95">
-@font-face{font-family:'W95FA';src:url('https://cdn.jsdelivr.net/gh/hydrogenhammer/w95fa@main/w95fa.woff2') format('woff2'),url('https://unpkg.com/98.css@0.1.20/dist/ms_sans_serif.woff2') format('woff2')}
+<link rel="icon" href="data:,"><title>Shift Planner</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Share+Tech+Mono&family=Orbitron:wght@600;800&family=Caveat:wght@600;700&family=Nunito:wght@400;700&family=Exo+2:wght@400;700&display=swap"><style id="th-win95">
 @font-face{font-family:'MSS';src:url('https://unpkg.com/98.css@0.1.20/dist/ms_sans_serif.woff2') format('woff2');font-weight:400}
 @font-face{font-family:'MSS';src:url('https://unpkg.com/98.css@0.1.20/dist/ms_sans_serif_bold.woff2') format('woff2');font-weight:700}
 :root{--g:#c0c0c0;--t:#000;--m:#404040;--out:inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px #808080,inset 2px 2px #dfdfdf;--in:inset -1px -1px #fff,inset 1px 1px #808080,inset -2px -2px #dfdfdf,inset 2px 2px #0a0a0a}
@@ -39,15 +38,15 @@ input,select{width:100%;padding:5px 4px;border:0;border-radius:0;background:#fff
 #fx{position:fixed;inset:0;pointer-events:none;z-index:20}
 </style><style>
 #themeBtn{font:inherit;font-size:12px;cursor:pointer;margin:0 6px 0 auto;padding:2px 8px;min-width:0}
-#tm{position:absolute;right:8px;top:44px;z-index:30;display:none;min-width:200px;padding:6px}
-#tm.open{display:block}#tm button{display:flex;align-items:center;gap:8px;width:100%;font:inherit;padding:7px;margin:2px 0;cursor:pointer;text-align:left}
+#themeMenu{position:absolute;right:4px;top:calc(100% + 4px);max-width:calc(100vw - 16px);z-index:30;display:none;min-width:200px;padding:6px}
+#themeMenu.open{display:block}#themeMenu button{display:flex;align-items:center;gap:8px;width:100%;font:inherit;padding:7px;margin:2px 0;cursor:pointer;text-align:left}
 .sw{width:34px;height:22px;flex:none;border:1px solid #0006;border-radius:4px}
 .sw-win95{background:linear-gradient(#000080 0 35%,#c0c0c0 35% 70%,#008000 70%)}
 .sw-modern{background:linear-gradient(135deg,#fff 50%,#6366f1 50%)}
 .sw-neon{background:linear-gradient(135deg,#0b0014 40%,#ff2bd6 40% 70%,#00f0ff 70%)}
 .sw-paper{background:repeating-linear-gradient(#fdf6e3 0 5px,#a8c6e8 5px 6px);box-shadow:inset 4px 0 #e57373}
 .sw-solar{background:radial-gradient(circle at 70% 80%,#ff8a3d 0 30%,transparent 32%),radial-gradient(#fff 1px,#0a1033 1px) 0 0/6px 6px}
-header{position:relative}
+header{position:relative;z-index:5}
 </style>
 <style id="th-base" disabled>
 *{box-sizing:border-box}body{margin:0;font-family:var(--f);font-size:15px;color:var(--t);background:var(--bg);min-height:100vh;padding-bottom:30px}
@@ -68,7 +67,7 @@ input,select{width:100%;padding:9px;border:var(--ib);border-radius:calc(var(--r)
 .b{padding:8px 10px;border-radius:calc(var(--r)*.7);margin:6px 0;font-size:14px;display:flex;justify-content:space-between;gap:8px;align-items:center;border:var(--blb)}
 .shift{background:var(--s1);color:var(--s1t,var(--t))}.sleep{background:var(--s2);color:var(--s2t,var(--t))}.buffer{background:var(--s3)}.free{background:var(--s4)}.task{background:var(--s5);font-weight:700;color:var(--s5t,var(--t))}
 .x{border:0;background:none;color:var(--a);font-size:16px;cursor:pointer}.muted{color:var(--m);font-size:13px}.big{font-size:22px;font-weight:700}
-#tm{background:var(--c);color:var(--t);border-radius:var(--r);box-shadow:0 8px 24px #0005;border:var(--cb)}#tm button{background:none;border:0;color:inherit;border-radius:6px}#tm button:hover,#tm button.on{background:var(--b2)}
+#themeMenu{background:var(--c);color:var(--t);border-radius:var(--r);box-shadow:0 8px 24px #0005;border:var(--cb)}#themeMenu button{background:none;border:0;color:inherit;border-radius:6px}#themeMenu button:hover,#themeMenu button.on{background:var(--b2)}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:20}
 </style>
 <style id="th-modern" disabled>
@@ -93,14 +92,14 @@ header.win{border-bottom:3px double #e57373}
 :root{--f:'Exo 2',system-ui,sans-serif;--hf:700 22px 'Exo 2',sans-serif;--h3f:700 16px 'Exo 2',sans-serif;--bg:#060b26;--t:#e8ecff;--m:#a3acd9;--c:#111a44cc;--r:18px;--sh:0 8px 30px #0008;--cb:1px solid #2c3a80;--hb:linear-gradient(180deg,#060b26,#1b1f5a 60%,#ff8a3d);--ht:#ffd29a;--hm:#ffe8cc;--nb:#060b26e6;--a:#ff8a3d;--at:#1a0d00;--b2:#1d2860;--bb:0;--bsh:0 0 14px #ff8a3d66;--ib:1px solid #2c3a80;--ibg:#0a1236;--h3:#ffb066;--blb:0;--s1:linear-gradient(90deg,#ff8a3d,#ffc15e);--s1t:#1a0d00;--s2:#1a2266;--s3:#3a2a55;--s4:#0f2a40;--s5:#ffc15e33;--s5t:#ffd29a}
 body{background:radial-gradient(1px 1px at 20% 30%,#fff,#0000),radial-gradient(1px 1px at 70% 10%,#fff,#0000),radial-gradient(1.5px 1.5px at 40% 70%,#fff,#0000),radial-gradient(1px 1px at 85% 55%,#fff,#0000),radial-gradient(1px 1px at 10% 85%,#fff,#0000),radial-gradient(ellipse at 50% 120%,#ff8a3d55,#0000 50%),#060b26;background-size:180px 180px,220px 220px,260px 260px,200px 200px,240px 240px,100% 100%;background-attachment:fixed}
 header.win{padding-bottom:22px}input,select{color-scheme:dark}
-</style></head><body><header class="win"><div class="tb"><h1><span class="ico">🂡</span> Shift Planner</h1><button id="themeBtn" class="btn" onclick="tm.classList.toggle('open')">🎨 Themes</button><div class="ctl"><i>_</i><i>□</i><i>✕</i></div></div><div class="wb muted" style="color:#000">Plan life around a schedule that keeps changing ♠♥♦♣</div></header><div id="tm" class="win"></div>
+</style></head><body><header class="win"><div class="tb"><h1><span class="ico">🂡</span> Shift Planner</h1><button id="themeBtn" class="btn" onclick="themeMenu.classList.toggle('open')">🎨 Themes</button><div class="ctl"><i>_</i><i>□</i><i>✕</i></div></div><div class="wb muted" style="color:#000">Plan life around a schedule that keeps changing ♠♥♦♣</div><div id="themeMenu" class="win"></div></header>
 <nav id="nav"></nav><main id="app"></main><canvas id="fx"></canvas><div id="bar"><button id="start" onclick="tab='today';r()">🪟 Start</button><span id="clock"></span></div>
 <script src="planner.js"></script><script>
 const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const S=JSON.parse(localStorage.getItem('sp')||'null')||{weeks:{},tasks:[],set:{sleepHours:8,commute:20,bufferBefore:15,bufferAfter:10,bedtime:'23:00'}};
 const save=()=>localStorage.setItem('sp',JSON.stringify(S));
 function monday(d){d=new Date(d);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;}
-let wk=monday(new Date()),tab='today';const key=d=>d.toISOString().slice(0,10);
+let wk=monday(new Date()),tab='today';const key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const shifts=()=>S.weeks[key(wk)]||(S.weeks[key(wk)]=[]);
 const nowAbs=()=>{const n=Date.now()-wk.getTime();return n/60000|0;};
 function dateOf(m){return new Date(wk.getTime()+m*60000);}
@@ -148,14 +147,14 @@ function setTheme(t){theme=t;localStorage.setItem('spTheme',t);
  document.getElementById('th-win95').disabled=t!='win95';document.getElementById('th-base').disabled=t=='win95';
  Object.keys(THEMES).forEach(k=>{if(k!='win95')document.getElementById('th-'+k).disabled=k!=t;});
  document.body.dataset.theme=t;document.querySelector('h1 .ico').textContent=ICO[t];
- tm.innerHTML=Object.keys(THEMES).map(k=>`<button class="${k==t?'on':''}" onclick="setTheme('${k}');tm.classList.remove('open')"><span class="sw sw-${k}"></span>${THEMES[k]}${k==t?' ✓':''}</button>`).join('');}
+ themeMenu.innerHTML=Object.keys(THEMES).map(k=>`<button class="${k==t?'on':''}" onclick="setTheme('${k}');themeMenu.classList.remove('open')"><span class="sw sw-${k}"></span>${THEMES[k]}${k==t?' ✓':''}</button>`).join('');}
 setTheme(theme);
 function celebrate(){if(theme=='win95')return win();const c=fx,x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
  const col={modern:['#6366f1','#22c55e','#f59e0b','#ec4899'],neon:['#ff2bd6','#00f0ff','#b8ff00'],paper:['#e2725b','#ffd6a5','#9bf6ff','#caffbf','#cdb4db'],solar:['#ff8a3d','#ffc15e','#fff','#ffd29a']}[theme];
  const ps=[...Array(140)].map(()=>{const a=Math.random()*6.28,v=4+Math.random()*9;return{x:c.width/2,y:theme=='solar'?c.height:c.height/2.5,vx:Math.cos(a)*v,vy:Math.sin(a)*v-(theme=='solar'?8:3),c:col[Math.random()*col.length|0],s:3+Math.random()*5,r:Math.random()*6}});let f=0;
  (function st(){x.clearRect(0,0,c.width,c.height);ps.forEach(p=>{p.vy+=.25;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=.2;x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;if(theme=='neon'){x.shadowColor=p.c;x.shadowBlur=12;}
  if(theme=='solar'){x.beginPath();x.arc(0,0,p.s/1.5,0,7);x.fill();}else x.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);x.restore();});if(++f<200)requestAnimationFrame(st);else x.clearRect(0,0,c.width,c.height);})();}
-document.addEventListener('click',e=>{if(!e.target.closest('#tm,#themeBtn'))tm.classList.remove('open');});
+document.addEventListener('click',e=>{if(!e.target.closest('#themeMenu,#themeBtn'))themeMenu.classList.remove('open');});
 function win(){const c=fx,x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;const su='♠♥♦♣';let n=0,cards=[],f=0;
 function card(cx,cy,s){x.fillStyle='#fff';x.strokeStyle='#000';x.fillRect(cx,cy,40,56);x.strokeRect(cx,cy,40,56);x.fillStyle=s%2?'#c00':'#000';x.font='bold 22px serif';x.fillText(su[s],cx+11,cy+36);}
 (function step(){if(f%12==0&&n<16)cards.push({x:c.width-50-(n%4)*10,y:20,vx:-(2+Math.random()*4),vy:0,s:n++%4});

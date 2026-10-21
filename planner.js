@@ -42,6 +42,6 @@ function ics(shifts,weekStart){// weekStart: Date (Monday 00:00 local)
   const f=d=>d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'T'+p(d.getHours())+p(d.getMinutes())+'00';
   let o='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ShiftPlanner//EN\r\n';
   shifts.forEach((s,i)=>{const{st,en}=shiftAbs(s);const a=new Date(weekStart.getTime()+st*60000),b=new Date(weekStart.getTime()+en*60000);
-    o+='BEGIN:VEVENT\r\nUID:shift-'+f(a)+'-'+i+'@shiftplanner\r\nDTSTAMP:'+f(new Date())+'\r\nDTSTART:'+f(a)+'\r\nDTEND:'+f(b)+'\r\nSUMMARY:Work shift\r\nEND:VEVENT\r\n';});
+    o+='BEGIN:VEVENT\r\nUID:shift-'+f(a)+'-'+i+'@shiftplanner\r\nDTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z'+'\r\nDTSTART:'+f(a)+'\r\nDTEND:'+f(b)+'\r\nSUMMARY:Work shift\r\nEND:VEVENT\r\n';});
   return o+'END:VCALENDAR\r\n';}
 if(typeof module!=='undefined')module.exports={plan,ics,shiftAbs,toMin,fmt};
